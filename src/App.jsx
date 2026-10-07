@@ -1,33 +1,78 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import './App.css'
+import { supabase } from './supabaseClient'
 
 function App() {
   const [tasks, setTasks] = useState([])
   const [title, setTitle] = useState('')
 
-  const addTask = () => {
+  const loadTasks = async () => {
+    const { data, error } = await supabase
+      .from('tasks')
+      .select('*')
+      .order('created_at', { ascending: true })
+
+    if (error) {
+      console.error('Error loading tasks:', error)
+      return
+    }
+
+    setTasks(data)
+  }
+
+  useEffect(() => {
+    loadTasks()
+
+    const channel = supabase
+      .channel('tasks-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'tasks',
+        },
+        () => {
+          loadTasks()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [])
+
+  const addTask = async () => {
     if (!title.trim()) return
 
-    setTasks([
-      ...tasks,
-      {
-        id: Date.now(),
-        title: title,
-        status: 'todo',
-      },
-    ])
+    const { error } = await supabase
+      .from('tasks')
+      .insert([
+        {
+          title: title.trim(),
+          description: '',
+          status: 'todo',
+        },
+      ])
+
+    if (error) {
+      console.error('Error adding task:', error)
+      return
+    }
 
     setTitle('')
   }
 
-  const moveTask = (id, newStatus) => {
-    setTasks(
-      tasks.map((task) =>
-        task.id === id
-          ? { ...task, status: newStatus }
-          : task
-      )
-    )
+  const moveTask = async (id, newStatus) => {
+    const { error } = await supabase
+      .from('tasks')
+      .update({ status: newStatus })
+      .eq('id', id)
+
+    if (error) {
+      console.error('Error moving task:', error)
+    }
   }
 
   const columns = [
