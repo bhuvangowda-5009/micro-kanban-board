@@ -20,6 +20,16 @@ function App() {
     setTitle('')
   }
 
+  const moveTask = (id, newStatus) => {
+    setTasks(
+      tasks.map((task) =>
+        task.id === id
+          ? { ...task, status: newStatus }
+          : task
+      )
+    )
+  }
+
   const columns = [
     { id: 'todo', title: 'To Do' },
     { id: 'in_progress', title: 'In Progress' },
@@ -58,7 +68,33 @@ function App() {
               .filter((task) => task.status === column.id)
               .map((task) => (
                 <div className="task-card" key={task.id}>
-                  {task.title}
+                  <p>{task.title}</p>
+
+                  {task.status !== 'todo' && (
+                    <button
+                      onClick={() => moveTask(task.id, 'todo')}
+                    >
+                      To Do
+                    </button>
+                  )}
+
+                  {task.status !== 'in_progress' && (
+                    <button
+                      onClick={() =>
+                        moveTask(task.id, 'in_progress')
+                      }
+                    >
+                      In Progress
+                    </button>
+                  )}
+
+                  {task.status !== 'done' && (
+                    <button
+                      onClick={() => moveTask(task.id, 'done')}
+                    >
+                      Done
+                    </button>
+                  )}
                 </div>
               ))}
           </div>
